@@ -3,8 +3,8 @@ Algorithm to release PyHEADTAIL versions. The structure follows the development
 workflow, cf. the PyHEADTAIL wiki:
 https://github.com/PyCOMPLETE/PyHEADTAIL/wiki/Our-Development-Workflow
 
-Requires git, hub (the github tool) and importlib (included in python >=2.7)
-installed.
+Requires git, hub (the github tool, https://hub.github.com/) and importlib
+(included in python >=2.7) installed.
 
 @copyright: CERN
 @date: 26.01.2017
@@ -74,6 +74,7 @@ def ensure_tests(test_script_location):
     return test_script.run()
 
 
+# DEFINE TWO STEPS FOR RELEASE PROCESS:
 
 def init_release(version, part):
     '''Initialise release process.'''
@@ -83,13 +84,22 @@ def init_release(version, part):
     version = bumpversion(version, part)
     open_release_branch(version)
     tests_successful = ensure_tests(test_script_location)
+    print ('*** The release process has been successfully initiated.\n'
+           'Opening the pull request into master from the just created '
+           'release branch.\n\n'
+           'You may have to provide your github.com credentials '
+           'to the following hub call. Then describe the new release in '
+           'the opened editor.')
+    subprocess.call(["hub", "pull-request"])
+    print ('*** The PyHEADTAIL tests have ' +
+           ('' if tests_successful else 'not ') + 'successfully terminated.')
 
 def finalise_release():
     '''Finalise release process.'''
     pass
 
 
-# ALGORITHM FOR RELEASE PROCESS
+# ALGORITHM FOR RELEASE PROCESS:
 if __name__ == '__main__':
     args = parser.parse_args()
     version = importlib.import_module(version_location).__version__
@@ -102,4 +112,3 @@ if __name__ == '__main__':
         init_release(version, args.part)
     else:
         finalise_release()
-    print (version)
