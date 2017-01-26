@@ -1,5 +1,6 @@
 import argparse
 import importlib # available from PyPI for Python <2.7
+import subprocess
 
 version_location = '_version' # in python relative module notation
 
@@ -35,8 +36,24 @@ def bumpversion(version, part):
         parts['major'], parts['minor'], parts['patch'])
     return bumpedversion
 
+def on_release_branch():
+    '''Return whether current branch is already a release branch or not.
+    Requires git installed and the current working directory to be inside
+    the git project which is to be checked.
+    '''
+    # get the current branch name, strip trailing whitespaces using rstrip()
+    branch = subprocess.check_output(
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"]).rstrip()
+    return branch[:8] == b'release/'
 
 if __name__ == '__main__':
     args = parser.parse_args()
     version = importlib.import_module(version_location).__version__
-    print (bumpversion(version, args.part))
+
+    if not on_release_branch():
+        # step 1: initialise release
+        version = bumpversion(version, args.part)
+    else:
+        # step 2: finalise release
+        pass
+    print (version)
