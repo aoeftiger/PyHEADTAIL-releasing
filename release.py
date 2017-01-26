@@ -3,6 +3,9 @@ Algorithm to release PyHEADTAIL versions. The structure follows the development
 workflow, cf. the PyHEADTAIL wiki:
 https://github.com/PyCOMPLETE/PyHEADTAIL/wiki/Our-Development-Workflow
 
+Requires git, hub (the github tool) and importlib (included in python >=2.7)
+installed.
+
 @copyright: CERN
 @date: 26.01.2017
 @author: Adrian Oeftiger
@@ -14,6 +17,7 @@ import os, subprocess
 
 # CONFIG
 version_location = '_version' # in python relative module notation
+test_script_location = 'pre-push' # in python relative module notation
 release_branch_prefix = 'release/v' # prepended name of release branch
 
 
@@ -64,6 +68,13 @@ def open_release_branch(version):
     ).rstrip().decode("utf-8")
     print (output)
 
+def ensure_tests(test_script_location):
+    '''Run test script and return whether they were successful.'''
+    test_script = importlib.import_module(test_script_location)
+    return test_script.run()
+
+
+
 def init_release(version, part):
     '''Initialise release process.'''
     if not current_branch() == 'develop':
@@ -71,17 +82,19 @@ def init_release(version, part):
             'Releases can only be initiated from the develop branch!')
     version = bumpversion(version, part)
     open_release_branch(version)
+    tests_successful = ensure_tests(test_script_location)
 
 def finalise_release():
     '''Finalise release process.'''
     pass
+
 
 # ALGORITHM FOR RELEASE PROCESS
 if __name__ == '__main__':
     args = parser.parse_args()
     version = importlib.import_module(version_location).__version__
 
-    print ('Current working directory: ' + os.getcwd())
+    print ('Current working directory:\n' + os.getcwd())
 
     # are we on a release branch already?
     if not (current_branch()[:len(release_branch_prefix)] ==
