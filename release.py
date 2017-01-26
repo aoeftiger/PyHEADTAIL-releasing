@@ -78,6 +78,21 @@ def ensure_tests(test_script_location):
     test_script = importlib.import_module(test_script_location)
     return test_script.run()
 
+def is_worktree_dirty():
+    '''Return True if the current git work tree is dirty, i.e.\ the
+    status whether or not there are uncommitted changes.
+    '''
+    # integer (0: clean, 1: dirty)
+    is_dirty = subprocess.call(['git', 'diff', '--quiet', 'HEAD', '--'])
+    return bool(is_dirty)
+
+def git_status():
+    '''Print git status output.'''
+    output = subprocess.check_output(
+        ['git', 'status', 'HEAD']
+    )
+    print (output)
+
 
 # DEFINE TWO STEPS FOR RELEASE PROCESS:
 
@@ -86,6 +101,11 @@ def init_release(version, part):
     if not current_branch() == 'develop':
         raise EnvironmentError(
             'Releases can only be initiated from the develop branch!')
+    if is_worktree_dirty():
+        git_status()
+        raise EnvironmentError('Release process can only be initiated on '
+                               'a clean git repository. You have uncommitted '
+                               'changes in your files, please fix this first.')
     version = bumpversion(version, part)
     open_release_branch(version)
     print ('*** The release process has been successfully initiated.\n'
