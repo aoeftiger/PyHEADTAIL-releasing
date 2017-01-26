@@ -2,7 +2,9 @@ import argparse
 import importlib # available from PyPI for Python <2.7
 import subprocess
 
+# CONFIG
 version_location = '_version' # in python relative module notation
+release_branch_prefix = 'release/v' # prepended name of release branch
 
 parser = argparse.ArgumentParser(
     description='Release a new version of PyHEADTAIL in 2 steps.')
@@ -43,8 +45,12 @@ def on_release_branch():
     '''
     # get the current branch name, strip trailing whitespaces using rstrip()
     branch = subprocess.check_output(
-        ["git", "rev-parse", "--abbrev-ref", "HEAD"]).rstrip()
-    return branch[:8] == b'release/'
+        ["git", "rev-parse", "--abbrev-ref", "HEAD"]).rstrip().decode("utf-8")
+    return branch[:len(release_branch_prefix)] == release_branch_prefix
+
+def open_release_branch(version):
+    '''Create release/vX.Y.Z branch with the given version string.'''
+    subprocess.call(["git", "checkout", "-b", "release/"])
 
 if __name__ == '__main__':
     args = parser.parse_args()
