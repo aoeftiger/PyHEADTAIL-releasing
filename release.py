@@ -37,21 +37,21 @@ def bumpversion(version, part):
         - version: string, format 'major.minor.patch' (e.g. '1.12.2')
         - part: string, one of ['major', 'minor', 'patch']
     '''
-    parts = {}
     # exactly 3 components in version:
-    parts['major'], parts['minor'], parts['patch'] = version.split('.')
+    parts = version.split('.')
     # only integers stored:
-    assert all(parts[p].isdigit() for p in parts)
-    try:
-        subversion = int(parts[part])
-        subversion += 1
-        parts[part] = str(subversion)
-    except KeyError:
+    assert all(p.isdigit() for p in parts)
+    major, minor, patch = map(int, parts)
+    if part == 'major':
+        version = '{0}.0.0'.format(major + 1)
+    elif part == 'minor':
+        version = '{0}.{1}.0'.format(major, minor + 1)
+    elif part == 'patch':
+        version = '{0}.{1}.{2}'.format(major, minor, patch + 1)
+    else:
         raise ValueError('The given part "' + part + '" is not in '
                          "['major', 'minor', 'patch'].")
-    bumpedversion = '{0}.{1}.{2}'.format(
-        parts['major'], parts['minor'], parts['patch'])
-    return bumpedversion
+    return version
 
 def current_branch():
     '''Return current git branch name.'''
