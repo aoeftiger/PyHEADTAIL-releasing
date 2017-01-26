@@ -61,10 +61,15 @@ def current_branch():
 
 def open_release_branch(version):
     '''Create release/vX.Y.Z branch with the given version string.
-    Print output from git.
+    Push the new release branch upstream. Print output from git.
     '''
+    branch_name = release_branch_prefix + version
     output = subprocess.check_output(
-        ["git", "checkout", "-b", release_branch_prefix + version]
+        ["git", "checkout", "-b", branch_name]
+    ).rstrip().decode("utf-8")
+    print (output)
+    output = subprocess.check_output(
+        ["git", "push", "--set-upstream", "origin", branch_name]
     ).rstrip().decode("utf-8")
     print (output)
 
@@ -83,7 +88,6 @@ def init_release(version, part):
             'Releases can only be initiated from the develop branch!')
     version = bumpversion(version, part)
     open_release_branch(version)
-    tests_successful = ensure_tests(test_script_location)
     print ('*** The release process has been successfully initiated.\n'
            'Opening the pull request into master from the just created '
            'release branch.\n\n'
@@ -91,12 +95,17 @@ def init_release(version, part):
            'to the following hub call. Then describe the new release in '
            'the opened editor.')
     subprocess.call(["hub", "pull-request"])
-    print ('*** The PyHEADTAIL tests have ' +
-           ('' if tests_successful else 'not ') + 'successfully terminated.')
+    print ('*** Please check that the PyHEADTAIL tests run successfully.')
 
-def finalise_release():
+def finalise_release(version):
     '''Finalise release process.'''
-    pass
+    tests_successful = ensure_tests(test_script_location)
+    if not tests_successful:
+        raise EnvironmentError('The PyHEADTAIL tests fail. Please fix '
+                               'the tests first!')
+    print ('*** The PyHEADTAIL tests have successfully terminated.')
+
+
 
 
 # ALGORITHM FOR RELEASE PROCESS:
@@ -104,11 +113,11 @@ if __name__ == '__main__':
     args = parser.parse_args()
     version = importlib.import_module(version_location).__version__
 
-    print ('Current working directory:\n' + os.getcwd())
+    print ('Current working directory:\n' + os.getcwd() + '\n')
 
     # are we on a release branch already?
     if not (current_branch()[:len(release_branch_prefix)] ==
             release_branch_prefix):
         init_release(version, args.part)
     else:
-        finalise_release()
+        finalise_release(version)
