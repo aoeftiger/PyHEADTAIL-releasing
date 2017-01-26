@@ -1,10 +1,21 @@
+'''
+Algorithm to release PyHEADTAIL versions. The structure follows the development
+workflow, cf. the PyHEADTAIL wiki:
+https://github.com/PyCOMPLETE/PyHEADTAIL/wiki/Our-Development-Workflow
+
+@copyright: CERN
+@date: 26.01.2017
+@author: Adrian Oeftiger
+'''
+
 import argparse
 import importlib # available from PyPI for Python <2.7
-import subprocess
+import os, subprocess
 
 # CONFIG
 version_location = '_version' # in python relative module notation
 release_branch_prefix = 'release/v' # prepended name of release branch
+
 
 parser = argparse.ArgumentParser(
     description='Release a new version of PyHEADTAIL in 2 steps.')
@@ -38,28 +49,44 @@ def bumpversion(version, part):
         parts['major'], parts['minor'], parts['patch'])
     return bumpedversion
 
-def on_release_branch():
-    '''Return whether current branch is already a release branch or not.
-    Requires git installed and the current working directory to be inside
-    the git project which is to be checked.
-    '''
+def current_branch():
+    '''Return current git branch name.'''
     # get the current branch name, strip trailing whitespaces using rstrip()
-    branch = subprocess.check_output(
+    return subprocess.check_output(
         ["git", "rev-parse", "--abbrev-ref", "HEAD"]).rstrip().decode("utf-8")
-    return branch[:len(release_branch_prefix)] == release_branch_prefix
 
 def open_release_branch(version):
-    '''Create release/vX.Y.Z branch with the given version string.'''
-    subprocess.call(["git", "checkout", "-b", "release/"])
+    '''Create release/vX.Y.Z branch with the given version string.
+    Print output from git.
+    '''
+    output = subprocess.check_output(
+        ["git", "checkout", "-b", release_branch_prefix + version]
+    ).rstrip().decode("utf-8")
+    print (output)
 
+def init_release(version, part):
+    '''Initialise release process.'''
+    if not current_branch() == 'develop':
+        raise EnvironmentError(
+            'Releases can only be initiated from the develop branch!')
+    version = bumpversion(version, part)
+    open_release_branch(version)
+
+def finalise_release():
+    '''Finalise release process.'''
+    pass
+
+# ALGORITHM FOR RELEASE PROCESS
 if __name__ == '__main__':
     args = parser.parse_args()
     version = importlib.import_module(version_location).__version__
 
-    if not on_release_branch():
-        # step 1: initialise release
-        version = bumpversion(version, args.part)
+    print ('Current working directory: ' + os.getcwd())
+
+    # are we on a release branch already?
+    if not (current_branch()[:len(release_branch_prefix)] ==
+            release_branch_prefix):
+        init_release(version, args.part)
     else:
-        # step 2: finalise release
-        pass
+        finalise_release()
     print (version)
