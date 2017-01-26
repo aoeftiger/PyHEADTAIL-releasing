@@ -61,10 +61,15 @@ def current_branch():
 
 def open_release_branch(version):
     '''Create release/vX.Y.Z branch with the given version string.
-    Print output from git.
+    Push the new release branch upstream. Print output from git.
     '''
+    branch_name = release_branch_prefix + version
     output = subprocess.check_output(
-        ["git", "checkout", "-b", release_branch_prefix + version]
+        ["git", "checkout", "-b", branch_name]
+    ).rstrip().decode("utf-8")
+    print (output)
+    output = subprocess.check_output(
+        ["git", "push", "--set-upstream", "origin", branch_name]
     ).rstrip().decode("utf-8")
     print (output)
 
