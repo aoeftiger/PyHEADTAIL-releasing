@@ -189,12 +189,22 @@ def init_release(part):
 
 def finalise_release():
     '''Finalise release process.'''
+    if is_worktree_dirty():
+        git_status()
+        raise EnvironmentError('Release process can only be initiated on '
+                               'a clean git repository. You have uncommitted '
+                               'changes in your files, please fix this first.')
     tests_successful = ensure_tests(test_script_location)
     if not tests_successful:
         raise EnvironmentError('The PyHEADTAIL tests fail. Please fix '
                                'the tests first!')
     print ('*** The PyHEADTAIL tests have successfully terminated.')
     new_version = establish_new_version(version_location)
+
+    # make sure to push any possible release branch commits
+    assert subprocess.call(["git", "push", "origin"]) == 0
+    # --> might instead be done via git fetch and suggesting to push
+    #     only if there are commits missing upstream
 
     # merge into master
     assert subprocess.call(["git", "checkout", "master"]) == 0
@@ -212,7 +222,8 @@ def finalise_release():
     assert subprocess.call(["git", "merge", "master"]) == 0
 
     # push everything upstream
-    assert subprocess.call(["git", "push", "--follow-tags"]) == 0
+    assert subprocess.call(
+        ["git", "push", "origin", "--all", "--follow-tags"]) == 0
 
     # publish github release (with text from pull request open in editor)
 
