@@ -6,6 +6,8 @@ https://github.com/PyCOMPLETE/PyHEADTAIL/wiki/Our-Development-Workflow
 Requires git, hub (the github tool, https://hub.github.com/) and importlib
 (included in python >=2.7) installed.
 
+Should be PEP440 conformal.
+
 @copyright: CERN
 @date: 26.01.2017
 @author: Adrian Oeftiger
@@ -53,6 +55,51 @@ def bumpversion(version, part):
                          "['major', 'minor', 'patch'].")
     return version
 
+def get_version(version_location):
+    '''Retrieve the version from version_location file.'''
+    return importlib.import_module(version_location).__version__
+
+def which_part_increases(last_version, new_version):
+    '''Return a string which version part is increased. Raise an error
+    if new_version is not a valid direct successor to last_version.
+    Args:
+        - last_version, new_version: string, format 'major.minor.patch'
+          (e.g. '1.12.2')
+    Return:
+        - part: string, one of ['major', 'minor', 'patch']
+    '''
+    # exactly 3 components in version:
+    last_parts = last_version.split('.')
+    new_parts = new_version.split('.')
+    # only integers stored:
+    assert all(p.isdigit() for p in last_parts + new_parts)
+    lmajor, lminor, lpatch = map(int, last_parts)
+    nmajor, nminor, npatch = map(int, new_parts)
+    if lmajor + 1 == nmajor and nminor == 0 and npatch == 0:
+        return 'major'
+    elif lmajor == nmajor and lminor + 1 == nminor and npatch == 0:
+        return 'minor'
+    elif lmajor == nmajor and lminor == nminor and lpatch + 1 == npatch:
+        return 'patch'
+    else:
+        raise ValueError(
+            'new_version is not a direct successor of last_version.')
+
+def establish_new_version(version_location):
+    '''Write the new release version to version_location.
+    Check that this agrees with the bumped previous version.
+    Return the new version.
+    '''
+    last_version = get_version(version_location)
+    release_version = current_branch()[len(release_branch_prefix):]
+
+    # make sure release_version incrementally succeeds last_version
+    which_part_increases(last_version, release_version)
+
+    with open(version_location, 'wt') as vfile:
+        vfile.write("__version__ = '" + release_version + "'")
+    return release_version
+
 def current_branch():
     '''Return current git branch name.'''
     # get the current branch name, strip trailing whitespaces using rstrip()
@@ -96,7 +143,7 @@ def git_status():
 
 # DEFINE TWO STEPS FOR RELEASE PROCESS:
 
-def init_release(version, part):
+def init_release(part):
     '''Initialise release process.'''
     if not current_branch() == 'develop':
         raise EnvironmentError(
@@ -106,8 +153,9 @@ def init_release(version, part):
         raise EnvironmentError('Release process can only be initiated on '
                                'a clean git repository. You have uncommitted '
                                'changes in your files, please fix this first.')
-    version = bumpversion(version, part)
-    open_release_branch(version)
+    current_version = get_version(version_location)
+    new_version = bumpversion(current_version, part)
+    open_release_branch(new_version)
     print ('*** The release process has been successfully initiated.\n'
            'Opening the pull request into master from the just created '
            'release branch.\n\n'
@@ -117,13 +165,14 @@ def init_release(version, part):
     subprocess.call(["hub", "pull-request"])
     print ('*** Please check that the PyHEADTAIL tests run successfully.')
 
-def finalise_release(version):
+def finalise_release():
     '''Finalise release process.'''
     tests_successful = ensure_tests(test_script_location)
     if not tests_successful:
         raise EnvironmentError('The PyHEADTAIL tests fail. Please fix '
                                'the tests first!')
     print ('*** The PyHEADTAIL tests have successfully terminated.')
+    new_version = establish_new_version(version_location)
 
 
 
@@ -131,13 +180,12 @@ def finalise_release(version):
 # ALGORITHM FOR RELEASE PROCESS:
 if __name__ == '__main__':
     args = parser.parse_args()
-    version = importlib.import_module(version_location).__version__
 
     print ('Current working directory:\n' + os.getcwd() + '\n')
 
     # are we on a release branch already?
     if not (current_branch()[:len(release_branch_prefix)] ==
             release_branch_prefix):
-        init_release(version, args.part)
+        init_release(args.part)
     else:
-        finalise_release(version)
+        finalise_release()
