@@ -104,6 +104,8 @@ def establish_new_version(version_location):
     with open(vpath, 'wt') as vfile:
         vfile.write("__version__ = '" + release_version + "'")
     assert subprocess.call(["git", "add", vpath]) == 0
+    assert subprocess.call(
+        ["git", "commit", "-m", "release-script: bumping version file."]) == 0
     return release_version
 
 def current_branch():
