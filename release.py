@@ -203,6 +203,8 @@ def finalise_release():
 
     # make sure to push any possible release branch commits
     assert subprocess.call(["git", "push", "origin"]) == 0
+    # --> might instead be done via git fetch and suggesting to push
+    #     only if there are commits missing upstream
 
     # merge into master
     assert subprocess.call(["git", "checkout", "master"]) == 0
