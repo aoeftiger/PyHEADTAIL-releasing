@@ -183,8 +183,20 @@ def finalise_release():
     new_version = establish_new_version(version_location)
     print ('*** The new release version has been bumped: PyHEADTAIL v'
            + new_version)
+    # TODO:
+    # merge into master
 
+    # delete release/vX.Y.Z branch
 
+    # tag version on master commit
+    # assert subprocess.call(["git", "tag", "-a", "v" + new_version, "-m",
+    #                         "'PyHEADTAIL v" + new_version + "'"]) == 0
+
+    # merge new master release back into develop
+    # assert subprocess.call(["git", "checkout", "develop"]) == 0
+    # assert subprocess.call(["git", "merge", "master"]) == 0
+
+    # publish github release (with text from pull request open in editor)
 
 # ALGORITHM FOR RELEASE PROCESS:
 if __name__ == '__main__':
