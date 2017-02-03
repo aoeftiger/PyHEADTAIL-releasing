@@ -25,11 +25,19 @@ release_branch_prefix = 'release/v' # prepended name of release branch
 
 
 parser = argparse.ArgumentParser(
-    description='Release a new version of PyHEADTAIL in 2 steps.')
+    description=(
+        'Release a new version of PyHEADTAIL in 2 steps:\n'
+        '1. prepare new release from develop branch '
+        '(requires release type argument)\n'
+        '2. publish new release (requires to be on release branch already)'),
+    formatter_class=argparse.RawTextHelpFormatter
+)
 parser.add_argument(
     'part', type=str,
     choices=['major', 'minor', 'patch'],
-    help="release type (use 'minor' for new features and 'patch' for bugfixes, "
+    help="release type\n"
+         "(use 'minor' for new features "
+         "and 'patch' for bugfixes, "
          "'major' is not usually used ;-)",
 )
 
@@ -212,13 +220,12 @@ def finalise_release():
 
 # ALGORITHM FOR RELEASE PROCESS:
 if __name__ == '__main__':
-    args = parser.parse_args()
-
-    print ('Current working directory:\n' + os.getcwd() + '\n')
+    print ('*** Current working directory:\n' + os.getcwd() + '\n')
 
     # are we on a release branch already?
     if not (current_branch()[:len(release_branch_prefix)] ==
             release_branch_prefix):
+        args = parser.parse_args()
         init_release(args.part)
     else:
         finalise_release()
