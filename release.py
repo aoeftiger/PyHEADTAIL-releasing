@@ -25,11 +25,19 @@ release_branch_prefix = 'release/v' # prepended name of release branch
 
 
 parser = argparse.ArgumentParser(
-    description='Release a new version of PyHEADTAIL in 2 steps.')
+    description=(
+        'Release a new version of PyHEADTAIL in 2 steps:\n'
+        '1. prepare new release from develop branch '
+        '(requires release type argument)\n'
+        '2. publish new release (requires to be on release branch already)'),
+    formatter_class=argparse.RawTextHelpFormatter
+)
 parser.add_argument(
     'part', type=str,
     choices=['major', 'minor', 'patch'],
-    help="release type (use 'minor' for new features and 'patch' for bugfixes, "
+    help="release type\n"
+         "(use 'minor' for new features "
+         "and 'patch' for bugfixes, "
          "'major' is not usually used ;-)",
 )
 
@@ -102,10 +110,12 @@ def establish_new_version(version_location):
 
     vpath = version_location.replace('.', '/') + '.py'
     with open(vpath, 'wt') as vfile:
-        vfile.write("__version__ = '" + release_version + "'")
+        vfile.write("__version__ = '" + release_version + "'\n")
     assert subprocess.call(["git", "add", vpath]) == 0
     assert subprocess.call(
         ["git", "commit", "-m", "release-script: bumping version file."]) == 0
+    print ('*** The new release version has been bumped: PyHEADTAIL v'
+           + release_version)
     return release_version
 
 def current_branch():
@@ -168,10 +178,14 @@ def init_release(part):
            'Opening the pull request into master from the just created '
            'release branch.\n\n'
            'You may have to provide your github.com credentials '
-           'to the following hub call. Then describe the new release in '
-           'the opened editor.')
+           'to the following hub call.\n\n'
+           'A text editor will open in which title and body of the pull '
+           'request for the new release can be entered in the same '
+           'manner as git commit message.')
     subprocess.call(["hub", "pull-request"])
-    print ('*** Please check that the PyHEADTAIL tests run successfully.')
+    print ('\n*** Please check that the PyHEADTAIL tests run successfully.')
+    print ('\n*** Initiated the release process. When you are ready to publish '
+           'the release, run this command again.')
 
 def finalise_release():
     '''Finalise release process.'''
@@ -181,32 +195,39 @@ def finalise_release():
                                'the tests first!')
     print ('*** The PyHEADTAIL tests have successfully terminated.')
     new_version = establish_new_version(version_location)
-    print ('*** The new release version has been bumped: PyHEADTAIL v'
-           + new_version)
-    # TODO:
-    # merge into master
 
-    # delete release/vX.Y.Z branch
+    # merge into master
+    assert subprocess.call(["git", "checkout", "master"]) == 0
+    rbranch = release_branch_prefix + new_version
+    assert subprocess.call(
+        ["git", "merge", "--no-ff", rbranch,
+         "-m", "release-script: Merge branch '" + rbranch + "'"]) == 0
 
     # tag version on master commit
-    # assert subprocess.call(["git", "tag", "-a", "v" + new_version, "-m",
-    #                         "'PyHEADTAIL v" + new_version + "'"]) == 0
+    assert subprocess.call(["git", "tag", "-a", "v" + new_version, "-m",
+                            "'PyHEADTAIL v" + new_version + "'"]) == 0
 
     # merge new master release back into develop
-    # assert subprocess.call(["git", "checkout", "develop"]) == 0
-    # assert subprocess.call(["git", "merge", "master"]) == 0
+    assert subprocess.call(["git", "checkout", "develop"]) == 0
+    assert subprocess.call(["git", "merge", "master"]) == 0
+
+    # push everything upstream
+    assert subprocess.call(["git", "push", "--follow-tags"]) == 0
 
     # publish github release (with text from pull request open in editor)
 
+    # delete release branch
+    assert subprocess.call(["git", "branch", "-d", rbranch]) == 0
+    assert subprocess.call(["git", "push", "origin", ":" + rbranch]) == 0
+
 # ALGORITHM FOR RELEASE PROCESS:
 if __name__ == '__main__':
-    args = parser.parse_args()
-
-    print ('Current working directory:\n' + os.getcwd() + '\n')
+    print ('*** Current working directory:\n' + os.getcwd() + '\n')
 
     # are we on a release branch already?
     if not (current_branch()[:len(release_branch_prefix)] ==
             release_branch_prefix):
+        args = parser.parse_args()
         init_release(args.part)
     else:
         finalise_release()
