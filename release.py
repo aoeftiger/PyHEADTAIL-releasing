@@ -102,10 +102,12 @@ def establish_new_version(version_location):
 
     vpath = version_location.replace('.', '/') + '.py'
     with open(vpath, 'wt') as vfile:
-        vfile.write("__version__ = '" + release_version + "'")
+        vfile.write("__version__ = '" + release_version + "'\n")
     assert subprocess.call(["git", "add", vpath]) == 0
     assert subprocess.call(
         ["git", "commit", "-m", "release-script: bumping version file."]) == 0
+    print ('*** The new release version has been bumped: PyHEADTAIL v'
+           + release_version)
     return release_version
 
 def current_branch():
@@ -168,8 +170,10 @@ def init_release(part):
            'Opening the pull request into master from the just created '
            'release branch.\n\n'
            'You may have to provide your github.com credentials '
-           'to the following hub call. Then describe the new release in '
-           'the opened editor.')
+           'to the following hub call.\n\n'
+           'A text editor will open in which title and body of the pull '
+           'request for the new release can be entered in the same '
+           'manner as git commit message.')
     subprocess.call(["hub", "pull-request"])
     print ('*** Please check that the PyHEADTAIL tests run successfully.')
 
@@ -181,8 +185,6 @@ def finalise_release():
                                'the tests first!')
     print ('*** The PyHEADTAIL tests have successfully terminated.')
     new_version = establish_new_version(version_location)
-    print ('*** The new release version has been bumped: PyHEADTAIL v'
-           + new_version)
 
     # merge into master
     assert subprocess.call(["git", "checkout", "master"]) == 0
