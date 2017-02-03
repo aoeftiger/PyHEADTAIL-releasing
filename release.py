@@ -19,6 +19,7 @@ import os, subprocess
 
 # CONFIG
 version_location = '_version' # in python relative module notation
+# (e.g. PyHEADTAIL._version for PyHEADTAIL/_version.py)
 test_script_location = 'pre-push' # in python relative module notation
 release_branch_prefix = 'release/v' # prepended name of release branch
 
@@ -89,6 +90,9 @@ def establish_new_version(version_location):
     '''Write the new release version to version_location.
     Check that this agrees with the bumped previous version.
     Return the new version.
+    Args:
+        - version_location: string, relative python module notation
+        (e.g. PyHEADTAIL._version for PyHEADTAIL/_version.py)
     '''
     last_version = get_version(version_location)
     release_version = current_branch()[len(release_branch_prefix):]
@@ -96,8 +100,10 @@ def establish_new_version(version_location):
     # make sure release_version incrementally succeeds last_version
     which_part_increases(last_version, release_version)
 
-    with open(version_location, 'wt') as vfile:
+    vpath = version_location.replace('.', '/') + '.py'
+    with open(vpath, 'wt') as vfile:
         vfile.write("__version__ = '" + release_version + "'")
+    assert subprocess.call(["git", "add", vpath]) == 0
     return release_version
 
 def current_branch():
@@ -173,7 +179,8 @@ def finalise_release():
                                'the tests first!')
     print ('*** The PyHEADTAIL tests have successfully terminated.')
     new_version = establish_new_version(version_location)
-
+    print ('*** The new release version has been bumped: PyHEADTAIL v'
+           + new_version)
 
 
 
