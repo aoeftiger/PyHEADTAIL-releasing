@@ -183,7 +183,9 @@ def init_release(part):
            'request for the new release can be entered in the same '
            'manner as git commit message.')
     subprocess.call(["hub", "pull-request"])
-    print ('*** Please check that the PyHEADTAIL tests run successfully.')
+    print ('\n*** Please check that the PyHEADTAIL tests run successfully.')
+    print ('\n*** Initiated the release process. When you are ready to publish '
+           'the release, run this command again.')
 
 def finalise_release():
     '''Finalise release process.'''
