@@ -199,6 +199,9 @@ def finalise_release():
     assert subprocess.call(["git", "checkout", "develop"]) == 0
     assert subprocess.call(["git", "merge", "master"]) == 0
 
+    # push everything upstream
+    assert subprocess.call(["git", "push", "--follow-tags"]) == 0
+
     # publish github release (with text from pull request open in editor)
 
     # delete release branch
